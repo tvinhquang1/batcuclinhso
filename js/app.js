@@ -1,8 +1,3 @@
-/**
- * Điều khiển giao diện người dùng
- * Kết nối UI với Analyzer
- */
-
 const app = {
     currentResults: null,
 
@@ -23,35 +18,27 @@ const app = {
         const gender = document.getElementById('gender').value;
         const birthYear = document.getElementById('birthYear').value;
 
-        // Validate
         if (!/^[0-9]{10,11}$/.test(phoneNumber)) {
             alert('Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
             return;
         }
 
-        // Show loading
         document.getElementById('loadingSection').classList.remove('hidden');
         document.getElementById('resultsSection').classList.add('hidden');
 
-        // Animate progress
         await this.animateProgress();
 
-        // Analyze
         const results = analyzer.analyze(phoneNumber, gender, birthYear);
         this.currentResults = results;
 
-        // Save to history
         this.saveToHistoryInternal(results);
 
-        // Show results
         document.getElementById('loadingSection').classList.add('hidden');
         document.getElementById('resultsSection').classList.remove('hidden');
 
-        // Render
         this.renderResults(results);
         this.loadHistory();
 
-        // Scroll to results
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
     },
 
@@ -64,17 +51,14 @@ const app = {
     },
 
     renderResults(results) {
-        // Stats
         document.getElementById('totalStars').textContent = results.stats.total;
         document.getElementById('goodStarsCount').textContent = results.stats.good;
         document.getElementById('badStarsCount').textContent = results.stats.bad;
         document.getElementById('goodPercentage').textContent = results.stats.percentage + '%';
         document.getElementById('scoreBar').style.width = results.stats.percentage + '%';
 
-        // Pairs table
         const pairsBody = document.getElementById('pairsTableBody');
         pairsBody.innerHTML = results.pairs.map((pair) => {
-            // Hiển thị cặp số với thông tin 0/5
             let pairDisplay = `<strong>${pair.originalPair}</strong>`;
             if (pair.pair !== pair.originalPair && !pair.isThreeDigit) {
                 pairDisplay += ` <span class="text-xs text-gray-500">→ ${pair.pair}</span>`;
@@ -83,7 +67,6 @@ const app = {
                 pairDisplay += ` <span class="text-xs text-blue-500">(3 số)</span>`;
             }
 
-            // Badge năng lượng
             let energyBadge = '';
             if (pair.energyLevel === 'enhanced') {
                 energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡ Tăng cường</span>';
@@ -93,7 +76,6 @@ const app = {
                 energyBadge = '<span class="badge" style="background: #fef3c7; color: #92400e;">⚠️ Bị động</span>';
             }
 
-            // Ghi chú đặc biệt
             let noteDisplay = '';
             if (pair.note) {
                 noteDisplay = `<div class="text-xs text-gray-500 mt-1">${pair.note}</div>`;
@@ -120,7 +102,6 @@ const app = {
             `;
         }).join('');
 
-        // Special numbers
         const specialSection = document.getElementById('specialNumbersSection');
         const specialContent = document.getElementById('specialNumbersContent');
         
@@ -172,7 +153,6 @@ const app = {
             specialContent.innerHTML = html;
         }
 
-        // Star cards
         const starContainer = document.getElementById('starCardsContainer');
         starContainer.innerHTML = Object.values(results.stars).map(star => `
             <div class="star-card ${star.type}">
@@ -192,7 +172,6 @@ const app = {
             </div>
         `).join('');
 
-        // Goal analysis - HIỂN THỊ ĐỦ 4 MỤC TIÊU
         const goals = ['tailoc', 'tinhcam', 'sunghiep', 'suckhoe'];
         
         goals.forEach(key => {
@@ -204,7 +183,6 @@ const app = {
             }
         });
 
-        // Recommendations
         const recommendations = document.getElementById('recommendations');
         recommendations.innerHTML = results.recommendations.map(rec => `
             <div class="alert alert-${rec.type}">
@@ -303,7 +281,6 @@ ${r.recommendations.map(rec => `- ${rec.title}: ${rec.content}`).join('\n')}
     }
 };
 
-// Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     app.init();
 });

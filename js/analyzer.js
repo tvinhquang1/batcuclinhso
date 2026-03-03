@@ -35,9 +35,8 @@ class NumberAnalyzer {
 
     /**
      * Tách cặp số theo logic Bát Cực Linh Số
-     * - Bỏ số 0 ở đầu dãy
-     * - A0B hoặc A5B → AB (0/5 ở giữa là cầu nối)
-     * - 0 hoặc 5 ở đầu/cuối cặp → Phục vị
+     * 2 số thành cục, 3 số thành tượng
+     * Xử lý đặc biệt số 0 và 5
      */
     extractPairs() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
@@ -49,13 +48,11 @@ class NumberAnalyzer {
             startIndex++;
         }
         
-        // Nếu tất cả đều là 0 hoặc chỉ còn 1 số thì không phân tích được
         if (startIndex >= phone.length - 1) {
             this.results.pairs = [];
             return;
         }
         
-        // Cắt bỏ số 0 ở đầu
         const cleanedPhone = phone.substring(startIndex);
         
         let i = 0;
@@ -68,7 +65,7 @@ class NumberAnalyzer {
                 const middle = cleanedPhone[i + 1];
                 const afterNext = cleanedPhone[i + 2];
                 
-                // Nếu có dạng A0B hoặc A5B (0 hoặc 5 ở giữa 2 số khác 0,5)
+                // Nếu có dạng A0B hoặc A5B
                 if ((middle === '0' || middle === '5') && 
                     current !== '0' && current !== '5' && 
                     afterNext !== '0' && afterNext !== '5') {
@@ -82,7 +79,7 @@ class NumberAnalyzer {
                         
                         pairs.push({
                             position: pairs.length + 1,
-                            pair: '91', // Diên Niên
+                            pair: '91',
                             originalPair: current + middle + afterNext,
                             isFuVi: false,
                             hasZero: false,
@@ -106,14 +103,13 @@ class NumberAnalyzer {
                         });
                     }
                     
-                    i += 2; // Skip 2 vị trí (vì đã xử lý 3 số)
+                    i += 2;
                     continue;
                 }
             }
             
             // Xử lý số 0 hoặc 5 ở đầu/cuối cặp số (Phục vị)
             if (current === '0' || current === '5') {
-                // 0 hoặc 5 ở đầu: Phục vị của số sau
                 pairs.push({
                     position: pairs.length + 1,
                     pair: next + next,
@@ -125,7 +121,6 @@ class NumberAnalyzer {
                     note: current === '0' ? 'Số 0 ở đầu - Phục vị ẩn tính' : 'Số 5 ở đầu - Phục vị tăng cường'
                 });
             } else if (next === '0' || next === '5') {
-                // 0 hoặc 5 ở cuối: Phục vị của số trước
                 pairs.push({
                     position: pairs.length + 1,
                     pair: current + current,
@@ -137,7 +132,6 @@ class NumberAnalyzer {
                     note: next === '0' ? 'Số 0 ở cuối - Phục vị ẩn tính' : 'Số 5 ở cuối - Phục vị tăng cường'
                 });
             } else {
-                // Cặp số bình thường (2 số)
                 pairs.push({
                     position: pairs.length + 1,
                     pair: current + next,
@@ -156,15 +150,11 @@ class NumberAnalyzer {
         this.results.pairs = pairs;
     }
 
-    /**
-     * Phân loại sao
-     */
     classifyStars() {
         this.results.pairs.forEach(pairObj => {
             let pairToCheck = pairObj.pair;
             let found = false;
             
-            // Tìm sao tương ứng trong config
             for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
                 if (starData.pairs.includes(pairToCheck)) {
                     pairObj.star = starData.name;
@@ -172,7 +162,6 @@ class NumberAnalyzer {
                     pairObj.type = starData.type;
                     pairObj.meaning = starData.meaning;
                     
-                    // Thêm modifier vào ý nghĩa
                     if (pairObj.modifier === 'hidden') {
                         pairObj.meaning += ' ⚠️ (bị động, ẩn tính)';
                         pairObj.energyLevel = 'reduced';
@@ -206,20 +195,24 @@ class NumberAnalyzer {
         });
     }
 
-    /**
-     * Phân tích số 0 và 5
-     */
     analyzeSpecialNumbers() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
-        const zeroCount = (phone.match(/0/g) || []).length;
-        const fiveCount = (phone.match(/5/g) || []).length;
+        
+        // Bỏ số 0 ở đầu để phân tích
+        let startIndex = 0;
+        while (startIndex < phone.length && phone[startIndex] === '0') {
+            startIndex++;
+        }
+        
+        const cleanedPhone = phone.substring(startIndex);
+        const zeroCount = (cleanedPhone.match(/0/g) || []).length;
+        const fiveCount = (cleanedPhone.match(/5/g) || []).length;
         
         this.results.specialNumbers.zeroCount = zeroCount;
         this.results.specialNumbers.fiveCount = fiveCount;
         this.results.specialNumbers.zeros = [];
         this.results.specialNumbers.fives = [];
         
-        // Cảnh báo quá nhiều số 0
         if (zeroCount >= 3) {
             this.results.criticalWarnings.push({
                 type: 'warning',
@@ -228,7 +221,6 @@ class NumberAnalyzer {
             });
         }
         
-        // Cảnh báo nhiều 0 và 5
         if (zeroCount > 0 && fiveCount > 0) {
             this.results.criticalWarnings.push({
                 type: 'warning',
@@ -237,15 +229,13 @@ class NumberAnalyzer {
             });
         }
         
-        // Lấy ngữ cảnh xung quanh số 0 và 5
-        for (let i = 0; i < phone.length; i++) {
-            if (phone[i] === '0') {
+        for (let i = 0; i < cleanedPhone.length; i++) {
+            if (cleanedPhone[i] === '0') {
                 const start = Math.max(0, i - 2);
-                const end = Math.min(phone.length, i + 3);
-                const context = phone.substring(start, end);
+                const end = Math.min(cleanedPhone.length, i + 3);
+                const context = cleanedPhone.substring(start, end);
                 
-                // Số đuôi là 0
-                if (i === phone.length - 1) {
+                if (i === cleanedPhone.length - 1) {
                     this.results.criticalWarnings.push({
                         type: 'critical',
                         message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
@@ -260,10 +250,10 @@ class NumberAnalyzer {
                 });
             }
             
-            if (phone[i] === '5') {
+            if (cleanedPhone[i] === '5') {
                 const start = Math.max(0, i - 2);
-                const end = Math.min(phone.length, i + 3);
-                const context = phone.substring(start, end);
+                const end = Math.min(cleanedPhone.length, i + 3);
+                const context = cleanedPhone.substring(start, end);
                 
                 this.results.specialNumbers.fives.push({
                     position: i + 1,
@@ -273,11 +263,10 @@ class NumberAnalyzer {
             }
         }
 
-        // Check special combinations với 0
         this.results.specialNumbers.combinations = [];
         const specialCombos = Object.keys(ZERO_FIVE_RULES.zero.special_combinations);
         specialCombos.forEach(combo => {
-            const positions = this.findAllOccurrences(phone, combo);
+            const positions = this.findAllOccurrences(cleanedPhone, combo);
             if (positions.length > 0) {
                 this.results.specialNumbers.combinations.push({
                     combination: combo,
@@ -287,8 +276,7 @@ class NumberAnalyzer {
             }
         });
         
-        // Check đuôi 05
-        if (phone.endsWith('05')) {
+        if (cleanedPhone.endsWith('05')) {
             this.results.criticalWarnings.push({
                 type: 'critical',
                 message: 'Đuôi 05: Tứ đại giai không (tài phú không, sự nghiệp không, tình cảm không, sức khỏe không)',
@@ -297,13 +285,9 @@ class NumberAnalyzer {
         }
     }
 
-    /**
-     * Kiểm tra cảnh báo nghiêm trọng
-     */
     checkCriticalWarnings() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
         
-        // Check đuôi số
         CRITICAL_WARNINGS.endings.forEach(ending => {
             if (phone.endsWith(ending)) {
                 this.results.criticalWarnings.push({
@@ -314,7 +298,6 @@ class NumberAnalyzer {
             }
         });
 
-        // Check tổ hợp cấm
         CRITICAL_WARNINGS.combinations.forEach(combo => {
             if (phone.includes(combo)) {
                 this.results.criticalWarnings.push({
@@ -325,7 +308,6 @@ class NumberAnalyzer {
             }
         });
         
-        // Check tổ hợp Hung tinh + 0
         const hungStars = ['tuyet_menh', 'ngu_quy', 'luc_sat', 'hoa_hai'];
         this.results.pairs.forEach(pair => {
             if (hungStars.includes(pair.starKey) && pair.hasZero) {
@@ -338,9 +320,6 @@ class NumberAnalyzer {
         });
     }
 
-    /**
-     * Tính điểm
-     */
     calculateScore() {
         let goodCount = 0;
         let badCount = 0;
@@ -357,12 +336,10 @@ class NumberAnalyzer {
             this.results.score = Math.round(50 + (goodCount - badCount) / total * 50);
         }
 
-        // Apply penalties
         this.results.criticalWarnings.forEach(warning => {
             this.results.score -= warning.penalty;
         });
 
-        // Bonus for enhanced good stars
         this.results.pairs.forEach(pair => {
             if (pair.type === 'good' && pair.energyLevel === 'enhanced') {
                 this.results.score += 3;
@@ -375,7 +352,6 @@ class NumberAnalyzer {
             }
         });
 
-        // Ensure score between 0-100
         this.results.score = Math.max(0, Math.min(100, this.results.score));
 
         this.results.stats = {
@@ -387,13 +363,9 @@ class NumberAnalyzer {
         };
     }
 
-    /**
-     * Tạo khuyến nghị
-     */
     generateRecommendations() {
         const recs = [];
 
-        // Based on score
         if (this.results.score >= 70) {
             recs.push({
                 type: 'positive',
@@ -414,7 +386,6 @@ class NumberAnalyzer {
             });
         }
 
-        // Based on critical warnings
         this.results.criticalWarnings.forEach(warning => {
             recs.push({
                 type: warning.type === 'critical' ? 'critical' : 'warning',
@@ -423,7 +394,6 @@ class NumberAnalyzer {
             });
         });
 
-        // Based on stars
         if (this.results.stars['luc_sat']?.count >= 2) {
             recs.push({
                 type: 'warning',
@@ -440,7 +410,6 @@ class NumberAnalyzer {
             });
         }
 
-        // Check interactions
         if (this.results.stars['dien_nien'] && this.results.stars['luc_sat']) {
             recs.push({
                 type: 'positive',
@@ -457,7 +426,6 @@ class NumberAnalyzer {
             });
         }
 
-        // Based on 0 and 5
         if (this.results.specialNumbers.zeroCount >= 3) {
             recs.push({
                 type: 'warning',
@@ -469,9 +437,6 @@ class NumberAnalyzer {
         this.results.recommendations = recs;
     }
 
-    /**
-     * Phân tích theo mục tiêu - LUÔN PHÂN TÍCH ĐỦ 4 MỤC TIÊU
-     */
     analyzeByGoal() {
         const goalAnalysis = {
             tailoc: { title: '💰 Tài Lộc', content: [] },
@@ -480,7 +445,6 @@ class NumberAnalyzer {
             suckhoe: { title: '🍎 Sức Khỏe', content: [] }
         };
 
-        // --- TÀI LỘC ---
         if (this.results.stars['thien_y']) {
             goalAnalysis.tailoc.content.push(`✅ Có ${this.results.stars['thien_y'].count} Thiên Y - Chủ đại tài, tiền từ bát phương đến`);
         }
@@ -501,7 +465,6 @@ class NumberAnalyzer {
         }
         if (goalAnalysis.tailoc.content.length === 0) goalAnalysis.tailoc.content.push('ℹ️ Không có dấu hiệu tài lộc đặc biệt');
 
-        // --- TÌNH CẢM ---
         if (this.results.stars['thien_y']) {
             goalAnalysis.tinhcam.content.push(`✅ Có ${this.results.stars['thien_y'].count} Thiên Y - Chính đào hoa, dễ kết hôn, tình cảm ân ái`);
         }
@@ -520,7 +483,6 @@ class NumberAnalyzer {
         }
         if (goalAnalysis.tinhcam.content.length === 0) goalAnalysis.tinhcam.content.push('ℹ️ Không có dấu hiệu tình cảm đặc biệt');
 
-        // --- SỰ NGHIỆP ---
         if (this.results.stars['dien_nien']) {
             goalAnalysis.sunghiep.content.push(`✅ Có ${this.results.stars['dien_nien'].count} Diên Niên - Năng lực lãnh đạo, có thể độc thủ một phương`);
         }
@@ -538,7 +500,6 @@ class NumberAnalyzer {
         }
         if (goalAnalysis.sunghiep.content.length === 0) goalAnalysis.sunghiep.content.push('ℹ️ Không có dấu hiệu sự nghiệp đặc biệt');
 
-        // --- SỨC KHỎE ---
         const healthIssues = [];
         if (this.results.stars['thien_y']) healthIssues.push('Huyết áp, tuần hoàn máu');
         if (this.results.stars['dien_nien']) healthIssues.push('Vai cổ, eo, giấc ngủ, tim');
@@ -547,7 +508,7 @@ class NumberAnalyzer {
         if (this.results.stars['luc_sat']) healthIssues.push('Da, dạ dày, bệnh tinh thần');
         if (this.results.stars['hoa_hai']) healthIssues.push('Khoang miệng, khí quản, tai nạn xe');
         if (this.results.specialNumbers.zeroCount > 0) healthIssues.push('Bệnh tật phát sinh (do số 0)');
-
+        
         if (healthIssues.length > 0) {
             goalAnalysis.suckhoe.content.push(`⚠️ Cần lưu ý: ${healthIssues.join(', ')}`);
         } else {
@@ -557,9 +518,6 @@ class NumberAnalyzer {
         this.results.goalAnalysis = goalAnalysis;
     }
 
-    /**
-     * Helper functions
-     */
     findAllOccurrences(str, substr) {
         const positions = [];
         let pos = 0;
@@ -571,5 +529,4 @@ class NumberAnalyzer {
     }
 }
 
-// Export for use
 const analyzer = new NumberAnalyzer();
