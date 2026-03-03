@@ -57,28 +57,50 @@ class NumberAnalyzer {
      * Phân loại sao
      */
     classifyStars() {
-        this.results.pairs.forEach(pairObj => {
-            for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
-                if (starData.pairs.includes(pairObj.pair)) {
-                    pairObj.star = starData.name;
-                    pairObj.starKey = starKey;
-                    pairObj.type = starData.type;
-                    pairObj.meaning = starData.meaning;
-                    
-                    if (!this.results.stars[starKey]) {
-                        this.results.stars[starKey] = {
-                            ...starData,
-                            count: 0,
-                            positions: []
-                        };
-                    }
-                    this.results.stars[starKey].count++;
-                    this.results.stars[starKey].positions.push(pairObj.position);
-                    break;
-                }
+    this.results.pairs.forEach(pairObj => {
+        let pairToCheck = pairObj.pair;
+        
+        // Xử lý số 0 - chuyển về Phục vị
+        if (pairToCheck.includes('0')) {
+            if (pairToCheck.startsWith('0')) {
+                // 03, 07, 09... -> 33, 77, 99...
+                const lastDigit = pairToCheck[1];
+                pairToCheck = lastDigit + lastDigit;
+                pairObj.hasZero = true;
+                pairObj.zeroPosition = 'start';
+            } else if (pairToCheck.endsWith('0')) {
+                // 30, 70, 90... -> 33, 77, 99...
+                const firstDigit = pairToCheck[0];
+                pairToCheck = firstDigit + firstDigit;
+                pairObj.hasZero = true;
+                pairObj.zeroPosition = 'end';
             }
-        });
-    }
+        }
+        
+        // Tìm sao tương ứng
+        for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
+            if (starData.pairs.includes(pairToCheck)) {
+                pairObj.star = starData.name;
+                pairObj.starKey = starKey;
+                pairObj.type = starData.type;
+                pairObj.meaning = starData.meaning;
+                pairObj.originalPair = pairObj.pair; // Lưu cặp gốc
+                pairObj.processedPair = pairToCheck; // Lưu cặp đã xử lý
+                
+                if (!this.results.stars[starKey]) {
+                    this.results.stars[starKey] = {
+                        ...starData,
+                        count: 0,
+                        positions: []
+                    };
+                }
+                this.results.stars[starKey].count++;
+                this.results.stars[starKey].positions.push(pairObj.position);
+                break;
+            }
+        }
+    });
+}
 
     /**
      * Phân tích số 0 và 5
