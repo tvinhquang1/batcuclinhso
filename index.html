@@ -25,7 +25,7 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="phoneNumber">Số Điện Thoại *</label>
-                        <input type="tel" id="phoneNumber" required placeholder="Nhập số điện thoại" pattern="[0-9]{10,11}">
+                        <input type="tel" id="phoneNumber" required placeholder="0392870786" pattern="[0-9]{10,11}">
                     </div>
                     <div class="form-group">
                         <label for="gender">Giới Tính *</label>
@@ -37,20 +37,10 @@
                     </div>
                     <div class="form-group">
                         <label for="birthYear">Năm Sinh *</label>
-                        <input type="number" id="birthYear" required placeholder="Nhập năm sinh" min="1900" max="2024">
-                    </div>
-                    <div class="form-group">
-                        <label for="goal">Mục Tiêu Quan Tâm *</label>
-                        <select id="goal" required>
-                            <option value="">Chọn mục tiêu</option>
-                            <option value="tailoc">Tài Lộc</option>
-                            <option value="tinhcam">Tình Cảm</option>
-                            <option value="sunghiep">Sự Nghiệp</option>
-                            <option value="suckhoe">Sức Khỏe</option>
-                        </select>
+                        <input type="number" id="birthYear" required placeholder="1997" min="1900" max="2024">
                     </div>
                 </div>
-                <button type="submit" class="btn-primary">🔍 Phân Tích Ngay</button>
+                <button type="submit" class="btn-primary">🔍 Phân Tích Toàn Diện</button>
             </form>
         </section>
 
@@ -120,10 +110,31 @@
                 <div class="star-grid" id="starCardsContainer"></div>
             </div>
 
-            <!-- Goal Analysis -->
+            <!-- Goal Analysis - All 4 Aspects -->
             <div class="card">
-                <h2>🎯 Phân Tích Theo Mục Tiêu</h2>
-                <div id="goalAnalysis"></div>
+                <h2>🎯 Phân Tích Toàn Diện 4 Khía Cạnh</h2>
+                <div class="goal-grid">
+                    <!-- Tài Lộc -->
+                    <div class="goal-card">
+                        <div class="goal-header">💰 Tài Lộc</div>
+                        <div id="goalTailoc" class="goal-content"></div>
+                    </div>
+                    <!-- Tình Cảm -->
+                    <div class="goal-card">
+                        <div class="goal-header">❤️ Tình Cảm</div>
+                        <div id="goalTinhcam" class="goal-content"></div>
+                    </div>
+                    <!-- Sự Nghiệp -->
+                    <div class="goal-card">
+                        <div class="goal-header">💼 Sự Nghiệp</div>
+                        <div id="goalSunghiep" class="goal-content"></div>
+                    </div>
+                    <!-- Sức Khỏe -->
+                    <div class="goal-card">
+                        <div class="goal-header">🍎 Sức Khỏe</div>
+                        <div id="goalSuckhoe" class="goal-content"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Recommendations -->
@@ -158,6 +169,7 @@
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script src="js/config.js"></script>
     <script src="js/analyzer.js"></script>
     <script src="js/app.js"></script>

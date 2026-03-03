@@ -11,12 +11,11 @@ class NumberAnalyzer {
     /**
      * Phân tích số điện thoại
      */
-    analyze(phoneNumber, gender, birthYear, goal) {
+    analyze(phoneNumber, gender, birthYear) {
         this.results = {
             phoneNumber,
             gender,
             birthYear,
-            goal,
             timestamp: new Date().toISOString(),
             pairs: [],
             stars: {},
@@ -54,59 +53,86 @@ class NumberAnalyzer {
     }
 
     /**
-     * Phân loại sao
+     * Phân loại sao - XỬ LÝ SỐ 0
      */
     classifyStars() {
-    this.results.pairs.forEach(pairObj => {
-        let pairToCheck = pairObj.pair;
-        
-        // Xử lý số 0 - chuyển về Phục vị
-        if (pairToCheck.includes('0')) {
-            if (pairToCheck.startsWith('0')) {
-                // 03, 07, 09... -> 33, 77, 99...
-                const lastDigit = pairToCheck[1];
-                pairToCheck = lastDigit + lastDigit;
-                pairObj.hasZero = true;
-                pairObj.zeroPosition = 'start';
-            } else if (pairToCheck.endsWith('0')) {
-                // 30, 70, 90... -> 33, 77, 99...
-                const firstDigit = pairToCheck[0];
-                pairToCheck = firstDigit + firstDigit;
-                pairObj.hasZero = true;
-                pairObj.zeroPosition = 'end';
-            }
-        }
-        
-        // Tìm sao tương ứng
-        for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
-            if (starData.pairs.includes(pairToCheck)) {
-                pairObj.star = starData.name;
-                pairObj.starKey = starKey;
-                pairObj.type = starData.type;
-                pairObj.meaning = starData.meaning;
-                pairObj.originalPair = pairObj.pair; // Lưu cặp gốc
-                pairObj.processedPair = pairToCheck; // Lưu cặp đã xử lý
-                
-                if (!this.results.stars[starKey]) {
-                    this.results.stars[starKey] = {
-                        ...starData,
-                        count: 0,
-                        positions: []
-                    };
+        this.results.pairs.forEach(pairObj => {
+            let pairToCheck = pairObj.pair;
+            
+            // XỬ LÝ SỐ 0: Quy đổi về Phục Vị của số liền kề
+            if (pairToCheck.includes('0')) {
+                if (pairToCheck.startsWith('0')) {
+                    const lastDigit = pairToCheck[1];
+                    pairToCheck = lastDigit + lastDigit; // 03 -> 33
+                    pairObj.hasZero = true;
+                    pairObj.zeroPosition = 'start';
+                } else if (pairToCheck.endsWith('0')) {
+                    const firstDigit = pairToCheck[0];
+                    pairToCheck = firstDigit + firstDigit; // 30 -> 33
+                    pairObj.hasZero = true;
+                    pairObj.zeroPosition = 'end';
                 }
-                this.results.stars[starKey].count++;
-                this.results.stars[starKey].positions.push(pairObj.position);
-                break;
             }
-        }
-    });
-}
+            
+            // Tìm sao tương ứng
+            for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
+                if (starData.pairs.includes(pairToCheck)) {
+                    pairObj.star = starData.name;
+                    pairObj.starKey = starKey;
+                    pairObj.type = starData.type;
+                    pairObj.meaning = starData.meaning;
+                    pairObj.originalPair = pairObj.pair; 
+                    pairObj.processedPair = pairToCheck; 
+                    
+                    if (!this.results.stars[starKey]) {
+                        this.results.stars[starKey] = {
+                            ...starData,
+                            count: 0,
+                            positions: []
+                        };
+                    }
+                    this.results.stars[starKey].count++;
+                    this.results.stars[starKey].positions.push(pairObj.position);
+                    break;
+                }
+            }
+        });
+    }
 
     /**
      * Phân tích số 0 và 5
      */
     analyzeSpecialNumbers() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
+        
+        // Đếm số 0
+        const zeroCount = (phone.match(/0/g) || []).length;
+        
+        if (zeroCount > 0) {
+            this.results.specialNumbers.zeroCount = zeroCount;
+            
+            // Cảnh báo theo tài liệu
+            if (zeroCount >= 3) {
+                this.results.criticalWarnings.push({
+                    type: 'warning',
+                    message: `Quá nhiều số 0 (${zeroCount}): Kiếm tiền rất vất vả, dễ phẫu thuật, hao tiết nguyên khí`,
+                    penalty: 15
+                });
+            }
+            
+            // Kiểm tra vị trí số 0
+            for (let i = 0; i < phone.length; i++) {
+                if (phone[i] === '0') {
+                    if (i === phone.length - 1) {
+                        this.results.criticalWarnings.push({
+                            type: 'critical',
+                            message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
+                            penalty: 50
+                        });
+                    }
+                }
+            }
+        }
         
         for (let i = 0; i < phone.length; i++) {
             if (phone[i] === '0') {
@@ -164,15 +190,6 @@ class NumberAnalyzer {
                 });
             }
         });
-
-        // Check quá nhiều số 0
-        if (this.results.specialNumbers.zeros.length > CRITICAL_WARNINGS.maxZeros) {
-            this.results.criticalWarnings.push({
-                type: 'warning',
-                message: `Quá nhiều số 0 (${this.results.specialNumbers.zeros.length}): Kiếm tiền rất vất vả, dễ phẫu thuật`,
-                penalty: 15
-            });
-        }
     }
 
     /**
@@ -285,7 +302,7 @@ class NumberAnalyzer {
     }
 
     /**
-     * Phân tích theo mục tiêu
+     * Phân tích theo mục tiêu - LUÔN PHÂN TÍCH ĐỦ 4 MỤC TIÊU
      */
     analyzeByGoal() {
         const goalAnalysis = {
@@ -295,7 +312,7 @@ class NumberAnalyzer {
             suckhoe: { title: '🍎 Sức Khỏe', content: [] }
         };
 
-        // Tài Lộc
+        // --- TÀI LỘC ---
         if (this.results.stars['thien_y']) {
             goalAnalysis.tailoc.content.push(`✅ Có ${this.results.stars['thien_y'].count} Thiên Y - Chủ đại tài, tiền từ bát phương đến`);
         }
@@ -308,11 +325,15 @@ class NumberAnalyzer {
         if (this.results.stars['tuyet_menh']) {
             goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.stars['tuyet_menh'].count} Tuyệt Mệnh - Dễ phá tài, xuất tiền nhanh`);
         }
+        if (this.results.stars['luc_sat']) {
+            goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.stars['luc_sat'].count} Lục Sát - Tiêu tiền cho nữ nhân, không giữ được tiền`);
+        }
         if (this.results.specialNumbers.zeros.length > 0) {
             goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.specialNumbers.zeros.length} số 0 - Tiền tài nhất định bị moi mất`);
         }
+        if (goalAnalysis.tailoc.content.length === 0) goalAnalysis.tailoc.content.push('ℹ️ Không có dấu hiệu tài lộc đặc biệt');
 
-        // Tình Cảm
+        // --- TÌNH CẢM ---
         if (this.results.stars['thien_y']) {
             goalAnalysis.tinhcam.content.push(`✅ Có ${this.results.stars['thien_y'].count} Thiên Y - Chính đào hoa, dễ kết hôn, tình cảm ân ái`);
         }
@@ -321,26 +342,35 @@ class NumberAnalyzer {
         }
         if (this.results.gender === 'nu' && this.results.stars['dien_nien']) {
             const strongPairs = ['19', '91', '87', '78'];
-            const hasStrong = this.results.pairs.some(p => 
-                p.starKey === 'dien_nien' && strongPairs.includes(p.pair)
-            );
+            const hasStrong = this.results.pairs.some(p => p.starKey === 'dien_nien' && strongPairs.includes(p.pair));
             if (hasStrong) {
                 goalAnalysis.tinhcam.content.push(`⚠️ Nữ dùng Diên Niên mạnh - Dễ khắc chồng, hôn nhân không tốt`);
             }
         }
+        if (this.results.specialNumbers.combinations.some(c => ['103', '608', '301', '806'].includes(c.combination))) {
+            goalAnalysis.tinhcam.content.push(`🛑 Có tổ hợp ẩn tàng ly hôn (103, 608...)`);
+        }
+        if (goalAnalysis.tinhcam.content.length === 0) goalAnalysis.tinhcam.content.push('ℹ️ Không có dấu hiệu tình cảm đặc biệt');
 
-        // Sự Nghiệp
+        // --- SỰ NGHIỆP ---
         if (this.results.stars['dien_nien']) {
             goalAnalysis.sunghiep.content.push(`✅ Có ${this.results.stars['dien_nien'].count} Diên Niên - Năng lực lãnh đạo, có thể độc thủ một phương`);
         }
         if (this.results.stars['sinh_khi']) {
             goalAnalysis.sunghiep.content.push(`✅ Có ${this.results.stars['sinh_khi'].count} Sinh Khí - Nhiều quý nhân trợ giúp, gặp dữ hóa lành`);
         }
+        if (this.results.stars['thien_y']) {
+            goalAnalysis.sunghiep.content.push(`✅ Có ${this.results.stars['thien_y'].count} Thiên Y - Có thể thành đại sự, trở thành ông chủ`);
+        }
+        if (this.results.stars['phuc_vi']) {
+            goalAnalysis.sunghiep.content.push(`⚠️ Có ${this.results.stars['phuc_vi'].count} Phục Vị - Sự nghiệp trì trệ, chờ đợi thời cơ`);
+        }
         if (this.results.specialNumbers.zeros.length > 0) {
             goalAnalysis.sunghiep.content.push(`⚠️ Có ${this.results.specialNumbers.zeros.length} số 0 - Sự nghiệp nhất định đình trệ`);
         }
+        if (goalAnalysis.sunghiep.content.length === 0) goalAnalysis.sunghiep.content.push('ℹ️ Không có dấu hiệu sự nghiệp đặc biệt');
 
-        // Sức Khỏe
+        // --- SỨC KHỎE ---
         const healthIssues = [];
         if (this.results.stars['thien_y']) healthIssues.push('Huyết áp, tuần hoàn máu');
         if (this.results.stars['dien_nien']) healthIssues.push('Vai cổ, eo, giấc ngủ, tim');

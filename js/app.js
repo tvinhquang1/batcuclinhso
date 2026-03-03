@@ -22,7 +22,6 @@ const app = {
         const phoneNumber = document.getElementById('phoneNumber').value;
         const gender = document.getElementById('gender').value;
         const birthYear = document.getElementById('birthYear').value;
-        const goal = document.getElementById('goal').value;
 
         // Validate
         if (!/^[0-9]{10,11}$/.test(phoneNumber)) {
@@ -38,7 +37,7 @@ const app = {
         await this.animateProgress();
 
         // Analyze
-        const results = analyzer.analyze(phoneNumber, gender, birthYear, goal);
+        const results = analyzer.analyze(phoneNumber, gender, birthYear);
         this.currentResults = results;
 
         // Save to history
@@ -74,19 +73,37 @@ const app = {
 
         // Pairs table
         const pairsBody = document.getElementById('pairsTableBody');
-        pairsBody.innerHTML = results.pairs.map((pair, index) => `
-            <tr class="${pair.type === 'good' ? 'bg-green-50' : pair.type === 'bad' ? 'bg-red-50' : 'bg-yellow-50'}">
-                <td>${pair.position}</td>
-                <td><strong>${pair.pair}</strong></td>
-                <td class="${pair.type === 'good' ? 'text-green-600' : pair.type === 'bad' ? 'text-red-600' : 'text-yellow-600'}">${pair.star || '-'}</td>
-                <td>
-                    <span class="badge ${pair.type === 'good' ? 'good' : pair.type === 'bad' ? 'bad' : ''}">
-                        ${pair.type === 'good' ? 'Cát' : pair.type === 'bad' ? 'Hung' : 'Trung'}
-                    </span>
-                </td>
-                <td>${pair.meaning || '-'}</td>
-            </tr>
-        `).join('');
+        pairsBody.innerHTML = results.pairs.map((pair, index) => {
+            // Cặp số có số 0
+            const pairDisplay = pair.hasZero 
+                ? `<strong>${pair.pair}</strong> <span class="text-xs text-gray-500">→ ${pair.processedPair}</span>`
+                : `<strong>${pair.pair}</strong>`;
+            
+            // Ý nghĩa đặc biệt cho số 0
+            let zeroWarning = '';
+            if (pair.hasZero) {
+                zeroWarning = '<div class="text-xs text-orange-600 mt-1">⚠️ Chứa số 0: Bị động, ẩn tính</div>';
+            }
+
+            return `
+                <tr class="${pair.type === 'good' ? 'bg-green-50' : pair.type === 'bad' ? 'bg-red-50' : 'bg-yellow-50'}">
+                    <td>${pair.position}</td>
+                    <td>${pairDisplay}</td>
+                    <td class="${pair.type === 'good' ? 'text-green-600' : pair.type === 'bad' ? 'text-red-600' : 'text-yellow-600'}">
+                        ${pair.star || '-'}
+                    </td>
+                    <td>
+                        <span class="badge ${pair.type === 'good' ? 'good' : pair.type === 'bad' ? 'bad' : ''}">
+                            ${pair.type === 'good' ? 'Cát' : pair.type === 'bad' ? 'Hung' : 'Trung'}
+                        </span>
+                    </td>
+                    <td>
+                        ${pair.meaning || '-'}
+                        ${zeroWarning}
+                    </td>
+                </tr>
+            `;
+        }).join('');
 
         // Special numbers
         const specialSection = document.getElementById('specialNumbersSection');
@@ -133,15 +150,17 @@ const app = {
             </div>
         `).join('');
 
-        // Goal analysis
-        const goalAnalysis = document.getElementById('goalAnalysis');
-        const goalData = results.goalAnalysis[results.goal];
-        goalAnalysis.innerHTML = `
-            <div class="alert alert-primary">
-                <h3>${goalData.title}</h3>
-                <ul>${goalData.content.map(item => `<li>${item}</li>`).join('')}</ul>
-            </div>
-        `;
+        // Goal analysis - HIỂN THỊ ĐỦ 4 MỤC TIÊU
+        const goals = ['tailoc', 'tinhcam', 'sunghiep', 'suckhoe'];
+        
+        goals.forEach(key => {
+            const element = document.getElementById(`goal${key.charAt(0).toUpperCase() + key.slice(1)}`);
+            const data = results.goalAnalysis[key];
+            
+            if (element && data) {
+                element.innerHTML = `<ul>${data.content.map(item => `<li>${item}</li>`).join('')}</ul>`;
+            }
+        });
 
         // Recommendations
         const recommendations = document.getElementById('recommendations');
@@ -174,7 +193,7 @@ const app = {
         }
 
         historyList.innerHTML = history.map(item => `
-            <div class="history-item" onclick="app.loadAnalysis(${item.timestamp})">
+            <div class="history-item" onclick="app.loadAnalysis('${item.timestamp}')">
                 <div class="history-info">
                     <strong>📱 ${item.phoneNumber}</strong>
                     <p>${new Date(item.timestamp).toLocaleString('vi-VN')} | ${item.gender === 'nam' ? 'Nam' : 'Nữ'} | ${item.birthYear}</p>
