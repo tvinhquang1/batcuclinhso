@@ -74,15 +74,29 @@ const app = {
         // Pairs table
         const pairsBody = document.getElementById('pairsTableBody');
         pairsBody.innerHTML = results.pairs.map((pair, index) => {
-            // Cặp số có số 0
-            const pairDisplay = pair.hasZero 
-                ? `<strong>${pair.pair}</strong> <span class="text-xs text-gray-500">→ ${pair.processedPair}</span>`
-                : `<strong>${pair.pair}</strong>`;
-            
-            // Ý nghĩa đặc biệt cho số 0
-            let zeroWarning = '';
-            if (pair.hasZero) {
-                zeroWarning = '<div class="text-xs text-orange-600 mt-1">⚠️ Chứa số 0: Bị động, ẩn tính</div>';
+            // Hiển thị cặp số với thông tin 0/5
+            let pairDisplay = `<strong>${pair.originalPair}</strong>`;
+            if (pair.pair !== pair.originalPair && !pair.isThreeDigit) {
+                pairDisplay += ` <span class="text-xs text-gray-500">→ ${pair.pair}</span>`;
+            }
+            if (pair.isThreeDigit) {
+                pairDisplay += ` <span class="text-xs text-blue-500">(3 số)</span>`;
+            }
+
+            // Badge năng lượng
+            let energyBadge = '';
+            if (pair.energyLevel === 'enhanced') {
+                energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡ Tăng cường</span>';
+            } else if (pair.energyLevel === 'super_enhanced') {
+                energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡⚡ Siêu tăng</span>';
+            } else if (pair.energyLevel === 'reduced') {
+                energyBadge = '<span class="badge" style="background: #fef3c7; color: #92400e;">⚠️ Bị động</span>';
+            }
+
+            // Ghi chú đặc biệt
+            let noteDisplay = '';
+            if (pair.note) {
+                noteDisplay = `<div class="text-xs text-gray-500 mt-1">${pair.note}</div>`;
             }
 
             return `
@@ -96,10 +110,11 @@ const app = {
                         <span class="badge ${pair.type === 'good' ? 'good' : pair.type === 'bad' ? 'bad' : ''}">
                             ${pair.type === 'good' ? 'Cát' : pair.type === 'bad' ? 'Hung' : 'Trung'}
                         </span>
+                        ${energyBadge}
                     </td>
                     <td>
                         ${pair.meaning || '-'}
-                        ${zeroWarning}
+                        ${noteDisplay}
                     </td>
                 </tr>
             `;
@@ -115,12 +130,12 @@ const app = {
             specialSection.classList.remove('hidden');
             let html = '';
             
-            if (results.specialNumbers.zeros.length > 0) {
-                html += `<div class="alert alert-warning"><strong>🔴 Số 0:</strong> ${results.specialNumbers.zeros.length} số - ${ZERO_FIVE_RULES.zero.warnings[0]}</div>`;
+            if (results.specialNumbers.zeroCount > 0) {
+                html += `<div class="alert alert-warning"><strong>🔴 Số 0:</strong> ${results.specialNumbers.zeroCount} số - ${ZERO_FIVE_RULES.zero.warnings[0]}</div>`;
             }
             
-            if (results.specialNumbers.fives.length > 0) {
-                html += `<div class="alert alert-info"><strong>🟡 Số 5:</strong> ${results.specialNumbers.fives.length} số - ${ZERO_FIVE_RULES.five.effects[0]}</div>`;
+            if (results.specialNumbers.fiveCount > 0) {
+                html += `<div class="alert alert-info"><strong>🟡 Số 5:</strong> ${results.specialNumbers.fiveCount} số - ${ZERO_FIVE_RULES.five.effects[0]}</div>`;
             }
 
             if (results.specialNumbers.combinations.length > 0) {
@@ -244,8 +259,8 @@ const app = {
 - Hung tinh: ${r.stats.bad}
 
 ⚠️ Lưu ý đặc biệt:
-- Số 0: ${r.specialNumbers.zeros.length}
-- Số 5: ${r.specialNumbers.fives.length}
+- Số 0: ${r.specialNumbers.zeroCount}
+- Số 5: ${r.specialNumbers.fiveCount}
 
 💡 Khuyến nghị:
 ${r.recommendations.map(rec => `- ${rec.title}: ${rec.content}`).join('\n')}

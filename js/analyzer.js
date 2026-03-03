@@ -1,6 +1,7 @@
 /**
  * Bộ máy phân tích Bát Cực Linh Số
  * Logic được tách riêng khỏi UI
+ * Cập nhật theo tài liệu Kim Tâm Cát
  */
 
 class NumberAnalyzer {
@@ -37,42 +38,132 @@ class NumberAnalyzer {
     }
 
     /**
-     * Tách cặp số
+     * Tách cặp số với xử lý đặc biệt cho 0 và 5
+     * Theo tài liệu: 2 số thành cục, 3 số thành tượng
+     * Số 0 và 5 ở giữa sẽ kết nối số trước và sau
      */
     extractPairs() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
-        for (let i = 0; i < phone.length - 1; i++) {
-            const pair = phone.substring(i, i + 2);
-            this.results.pairs.push({
+        const pairs = [];
+        let i = 0;
+        
+        while (i < phone.length - 1) {
+            const current = phone[i];
+            const next = phone[i + 1];
+            const pair = current + next;
+            
+            // Xử lý trường hợp đặc biệt: 3 số với 0 hoặc 5 ở giữa
+            if (i < phone.length - 2) {
+                const middle = phone[i + 1];
+                const afterNext = phone[i + 2];
+                
+                // Trường hợp: A0B hoặc A5B (0 hoặc 5 ở giữa 2 số khác)
+                if ((middle === '0' || middle === '5') && 
+                    current !== '0' && current !== '5' && 
+                    afterNext !== '0' && afterNext !== '5') {
+                    
+                    // Tạo cặp kết nối: A0B = AB, A5B = AB (nhưng 5 tăng cường)
+                    const connectedPair = current + afterNext;
+                    
+                    pairs.push({
+                        position: i + 1,
+                        pair: connectedPair,
+                        originalPair: current + middle + afterNext,
+                        isFuVi: false,
+                        hasZero: middle === '0',
+                        hasFive: middle === '5',
+                        modifier: middle === '0' ? 'hidden' : 'enhanced',
+                        note: middle === '0' ? 'Số 0 ở giữa - bị động, ẩn tính' : 'Số 5 ở giữa - tăng cường năng lượng',
+                        isThreeDigit: true
+                    });
+                    
+                    i += 2; // Skip 2 vị trí (vì đã xử lý 3 số)
+                    continue;
+                }
+            }
+            
+            // Xử lý số 0 hoặc 5 ở đầu cặp số
+            if (current === '0' || current === '5') {
+                // 0 hoặc 5 ở đầu: Tạo Phục vị với số sau
+                // 06 = 66, 56 = 66
+                pairs.push({
+                    position: i + 1,
+                    pair: next + next, // Phục vị của số sau
+                    originalPair: pair,
+                    isFuVi: true,
+                    hasZero: current === '0',
+                    hasFive: current === '5',
+                    modifier: current === '0' ? 'hidden' : 'enhanced',
+                    note: current === '0' ? 'Số 0 ở đầu - Phục vị ẩn tính' : 'Số 5 ở đầu - Phục vị tăng cường'
+                });
+                i++;
+                continue;
+            }
+            
+            // Xử lý số 0 hoặc 5 ở cuối cặp số
+            if (next === '0' || next === '5') {
+                // 0 hoặc 5 ở cuối: Tạo Phục vị với số trước
+                // 30 = 33, 35 = 33
+                pairs.push({
+                    position: i + 1,
+                    pair: current + current, // Phục vị của số trước
+                    originalPair: pair,
+                    isFuVi: true,
+                    hasZero: next === '0',
+                    hasFive: next === '5',
+                    modifier: next === '0' ? 'hidden' : 'enhanced',
+                    note: next === '0' ? 'Số 0 ở cuối - Phục vị ẩn tính' : 'Số 5 ở cuối - Phục vị tăng cường'
+                });
+                i++;
+                continue;
+            }
+            
+            // Trường hợp đặc biệt: 951 hoặc 159 (Diên Niên tăng mạnh)
+            if (i < phone.length - 2) {
+                if ((current === '9' && middle === '5' && afterNext === '1') ||
+                    (current === '1' && middle === '5' && afterNext === '9')) {
+                    
+                    pairs.push({
+                        position: i + 1,
+                        pair: '91', // Diên Niên
+                        originalPair: current + middle + afterNext,
+                        isFuVi: false,
+                        hasFive: true,
+                        modifier: 'super_enhanced',
+                        note: '951/159 - Diên Niên tăng mạnh gấp đôi (9191/1919)',
+                        isThreeDigit: true,
+                        isSpecial: true
+                    });
+                    
+                    i += 2;
+                    continue;
+                }
+            }
+            
+            // Cặp số bình thường (không có 0 hoặc 5)
+            pairs.push({
                 position: i + 1,
                 pair: pair,
-                star: null,
-                type: null
+                originalPair: pair,
+                isFuVi: false,
+                hasZero: false,
+                hasFive: false,
+                modifier: null,
+                note: null
             });
+            
+            i++;
         }
+        
+        this.results.pairs = pairs;
     }
 
     /**
-     * Phân loại sao - XỬ LÝ SỐ 0
+     * Phân loại sao với xử lý modifier
      */
     classifyStars() {
         this.results.pairs.forEach(pairObj => {
             let pairToCheck = pairObj.pair;
-            
-            // XỬ LÝ SỐ 0: Quy đổi về Phục Vị của số liền kề
-            if (pairToCheck.includes('0')) {
-                if (pairToCheck.startsWith('0')) {
-                    const lastDigit = pairToCheck[1];
-                    pairToCheck = lastDigit + lastDigit; // 03 -> 33
-                    pairObj.hasZero = true;
-                    pairObj.zeroPosition = 'start';
-                } else if (pairToCheck.endsWith('0')) {
-                    const firstDigit = pairToCheck[0];
-                    pairToCheck = firstDigit + firstDigit; // 30 -> 33
-                    pairObj.hasZero = true;
-                    pairObj.zeroPosition = 'end';
-                }
-            }
             
             // Tìm sao tương ứng
             for (const [starKey, starData] of Object.entries(STAR_CONFIG)) {
@@ -81,8 +172,18 @@ class NumberAnalyzer {
                     pairObj.starKey = starKey;
                     pairObj.type = starData.type;
                     pairObj.meaning = starData.meaning;
-                    pairObj.originalPair = pairObj.pair; 
-                    pairObj.processedPair = pairToCheck; 
+                    
+                    // Thêm thông tin modifier
+                    if (pairObj.modifier === 'hidden') {
+                        pairObj.meaning += ' ⚠️ (bị động, ẩn tính)';
+                        pairObj.energyLevel = 'reduced';
+                    } else if (pairObj.modifier === 'enhanced') {
+                        pairObj.meaning += ' ⚡ (tăng cường năng lượng)';
+                        pairObj.energyLevel = 'enhanced';
+                    } else if (pairObj.modifier === 'super_enhanced') {
+                        pairObj.meaning += ' ⚡⚡ (tăng mạnh gấp đôi)';
+                        pairObj.energyLevel = 'super_enhanced';
+                    }
                     
                     if (!this.results.stars[starKey]) {
                         this.results.stars[starKey] = {
@@ -96,6 +197,13 @@ class NumberAnalyzer {
                     break;
                 }
             }
+            
+            // Nếu không tìm thấy sao (cặp số không hợp lệ)
+            if (!pairObj.star) {
+                pairObj.star = 'Không xác định';
+                pairObj.type = 'neutral';
+                pairObj.meaning = 'Cặp số đặc biệt';
+            }
         });
     }
 
@@ -105,42 +213,47 @@ class NumberAnalyzer {
     analyzeSpecialNumbers() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
         
-        // Đếm số 0
+        // Đếm số 0 và 5
         const zeroCount = (phone.match(/0/g) || []).length;
+        const fiveCount = (phone.match(/5/g) || []).length;
         
-        if (zeroCount > 0) {
-            this.results.specialNumbers.zeroCount = zeroCount;
-            
-            // Cảnh báo theo tài liệu
-            if (zeroCount >= 3) {
-                this.results.criticalWarnings.push({
-                    type: 'warning',
-                    message: `Quá nhiều số 0 (${zeroCount}): Kiếm tiền rất vất vả, dễ phẫu thuật, hao tiết nguyên khí`,
-                    penalty: 15
-                });
-            }
-            
-            // Kiểm tra vị trí số 0
-            for (let i = 0; i < phone.length; i++) {
-                if (phone[i] === '0') {
-                    if (i === phone.length - 1) {
-                        this.results.criticalWarnings.push({
-                            type: 'critical',
-                            message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
-                            penalty: 50
-                        });
-                    }
-                }
-            }
+        this.results.specialNumbers.zeroCount = zeroCount;
+        this.results.specialNumbers.fiveCount = fiveCount;
+        
+        // Cảnh báo theo tài liệu
+        if (zeroCount >= 3) {
+            this.results.criticalWarnings.push({
+                type: 'warning',
+                message: `Quá nhiều số 0 (${zeroCount}): Kiếm tiền rất vất vả, dễ phẫu thuật, hao tiết nguyên khí`,
+                penalty: 15
+            });
         }
         
+        if (zeroCount > 0 && fiveCount > 0) {
+            this.results.criticalWarnings.push({
+                type: 'warning',
+                message: `Nhiều 0 và 5: Kiếm tiền rất vất vả (theo tài liệu)`,
+                penalty: 10
+            });
+        }
+        
+        // Kiểm tra vị trí số 0
         for (let i = 0; i < phone.length; i++) {
             if (phone[i] === '0') {
+                if (i === phone.length - 1) {
+                    this.results.criticalWarnings.push({
+                        type: 'critical',
+                        message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
+                        penalty: 50
+                    });
+                }
+                
                 this.results.specialNumbers.zeros.push({
                     position: i + 1,
                     context: this.getContext(phone, i)
                 });
             }
+            
             if (phone[i] === '5') {
                 this.results.specialNumbers.fives.push({
                     position: i + 1,
@@ -149,7 +262,7 @@ class NumberAnalyzer {
             }
         }
 
-        // Check special combinations
+        // Check special combinations với 0
         this.results.specialNumbers.combinations = [];
         const specialCombos = Object.keys(ZERO_FIVE_RULES.zero.special_combinations);
         specialCombos.forEach(combo => {
@@ -161,6 +274,15 @@ class NumberAnalyzer {
                 });
             }
         });
+        
+        // Check tổ hợp 05 ở đuôi
+        if (phone.endsWith('05')) {
+            this.results.criticalWarnings.push({
+                type: 'critical',
+                message: 'Đuôi 05: Tứ đại giai không (tài phú không, sự nghiệp không, tình cảm không, sức khỏe không)',
+                penalty: 100
+            });
+        }
     }
 
     /**
@@ -190,6 +312,18 @@ class NumberAnalyzer {
                 });
             }
         });
+        
+        // Check tổ hợp Hung tinh + 0
+        const hungStars = ['tuyet_menh', 'ngu_quy', 'luc_sat', 'hoa_hai'];
+        this.results.pairs.forEach(pair => {
+            if (hungStars.includes(pair.starKey) && pair.hasZero) {
+                this.results.criticalWarnings.push({
+                    type: 'warning',
+                    message: `Hung tinh ${pair.star} + số 0: Năng lượng xấu bị động hóa, khó giải quyết`,
+                    penalty: 10
+                });
+            }
+        });
     }
 
     /**
@@ -214,6 +348,19 @@ class NumberAnalyzer {
         // Apply penalties
         this.results.criticalWarnings.forEach(warning => {
             this.results.score -= warning.penalty;
+        });
+
+        // Bonus for enhanced good stars
+        this.results.pairs.forEach(pair => {
+            if (pair.type === 'good' && pair.energyLevel === 'enhanced') {
+                this.results.score += 3;
+            }
+            if (pair.type === 'good' && pair.energyLevel === 'super_enhanced') {
+                this.results.score += 5;
+            }
+            if (pair.type === 'bad' && pair.energyLevel === 'enhanced') {
+                this.results.score -= 3;
+            }
         });
 
         // Ensure score between 0-100
@@ -298,6 +445,15 @@ class NumberAnalyzer {
             });
         }
 
+        // Based on 0 and 5
+        if (this.results.specialNumbers.zeroCount >= 3) {
+            recs.push({
+                type: 'warning',
+                title: '⚠️ Quá nhiều số 0',
+                content: 'Theo tài liệu: "0 nhiều thể hiện thân thể dễ bị phẫu thuật, hao tiết nguyên khí, kiếm tiền rất vất vả". Nên cân nhắc đổi số.'
+            });
+        }
+
         this.results.recommendations = recs;
     }
 
@@ -328,8 +484,8 @@ class NumberAnalyzer {
         if (this.results.stars['luc_sat']) {
             goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.stars['luc_sat'].count} Lục Sát - Tiêu tiền cho nữ nhân, không giữ được tiền`);
         }
-        if (this.results.specialNumbers.zeros.length > 0) {
-            goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.specialNumbers.zeros.length} số 0 - Tiền tài nhất định bị moi mất`);
+        if (this.results.specialNumbers.zeroCount > 0) {
+            goalAnalysis.tailoc.content.push(`⚠️ Có ${this.results.specialNumbers.zeroCount} số 0 - Tiền tài nhất định bị moi mất`);
         }
         if (goalAnalysis.tailoc.content.length === 0) goalAnalysis.tailoc.content.push('ℹ️ Không có dấu hiệu tài lộc đặc biệt');
 
@@ -365,8 +521,8 @@ class NumberAnalyzer {
         if (this.results.stars['phuc_vi']) {
             goalAnalysis.sunghiep.content.push(`⚠️ Có ${this.results.stars['phuc_vi'].count} Phục Vị - Sự nghiệp trì trệ, chờ đợi thời cơ`);
         }
-        if (this.results.specialNumbers.zeros.length > 0) {
-            goalAnalysis.sunghiep.content.push(`⚠️ Có ${this.results.specialNumbers.zeros.length} số 0 - Sự nghiệp nhất định đình trệ`);
+        if (this.results.specialNumbers.zeroCount > 0) {
+            goalAnalysis.sunghiep.content.push(`⚠️ Có ${this.results.specialNumbers.zeroCount} số 0 - Sự nghiệp nhất định đình trệ`);
         }
         if (goalAnalysis.sunghiep.content.length === 0) goalAnalysis.sunghiep.content.push('ℹ️ Không có dấu hiệu sự nghiệp đặc biệt');
 
@@ -378,7 +534,7 @@ class NumberAnalyzer {
         if (this.results.stars['ngu_quy']) healthIssues.push('Tim, tuần hoàn máu, tai ương');
         if (this.results.stars['luc_sat']) healthIssues.push('Da, dạ dày, bệnh tinh thần');
         if (this.results.stars['hoa_hai']) healthIssues.push('Khoang miệng, khí quản, tai nạn xe');
-        if (this.results.specialNumbers.zeros.length > 0) healthIssues.push('Bệnh tật phát sinh (do số 0)');
+        if (this.results.specialNumbers.zeroCount > 0) healthIssues.push('Bệnh tật phát sinh (do số 0)');
 
         if (healthIssues.length > 0) {
             goalAnalysis.suckhoe.content.push(`⚠️ Cần lưu ý: ${healthIssues.join(', ')}`);
