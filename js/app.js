@@ -1,8 +1,3 @@
-/**
- * Điều khiển giao diện người dùng
- * Kết nối UI với Analyzer
- */
-
 const app = {
     currentResults: null,
 
@@ -23,35 +18,27 @@ const app = {
         const gender = document.getElementById('gender').value;
         const birthYear = document.getElementById('birthYear').value;
 
-        // Validate
         if (!/^[0-9]{10,11}$/.test(phoneNumber)) {
             alert('Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
             return;
         }
 
-        // Show loading
         document.getElementById('loadingSection').classList.remove('hidden');
         document.getElementById('resultsSection').classList.add('hidden');
 
-        // Animate progress
         await this.animateProgress();
 
-        // Analyze
         const results = analyzer.analyze(phoneNumber, gender, birthYear);
         this.currentResults = results;
 
-        // Save to history
         this.saveToHistoryInternal(results);
 
-        // Show results
         document.getElementById('loadingSection').classList.add('hidden');
         document.getElementById('resultsSection').classList.remove('hidden');
 
-        // Render
         this.renderResults(results);
         this.loadHistory();
 
-        // Scroll to results
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
     },
 
@@ -73,30 +60,17 @@ const app = {
 
         // Pairs table
         const pairsBody = document.getElementById('pairsTableBody');
-        pairsBody.innerHTML = results.pairs.map((pair, index) => {
-            // Hiển thị cặp số với thông tin 0/5
+        pairsBody.innerHTML = results.pairs.map((pair) => {
             let pairDisplay = `<strong>${pair.originalPair}</strong>`;
-            if (pair.pair !== pair.originalPair && !pair.isThreeDigit) {
+            if (pair.pair !== pair.originalPair) {
                 pairDisplay += ` <span class="text-xs text-gray-500">→ ${pair.pair}</span>`;
             }
-            if (pair.isThreeDigit) {
-                pairDisplay += ` <span class="text-xs text-blue-500">(3 số)</span>`;
-            }
 
-            // Badge năng lượng
             let energyBadge = '';
             if (pair.energyLevel === 'enhanced') {
                 energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡ Tăng cường</span>';
-            } else if (pair.energyLevel === 'super_enhanced') {
-                energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡⚡ Siêu tăng</span>';
             } else if (pair.energyLevel === 'reduced') {
                 energyBadge = '<span class="badge" style="background: #fef3c7; color: #92400e;">⚠️ Bị động</span>';
-            }
-
-            // Ghi chú đặc biệt
-            let noteDisplay = '';
-            if (pair.note) {
-                noteDisplay = `<div class="text-xs text-gray-500 mt-1">${pair.note}</div>`;
             }
 
             return `
@@ -112,10 +86,7 @@ const app = {
                         </span>
                         ${energyBadge}
                     </td>
-                    <td>
-                        ${pair.meaning || '-'}
-                        ${noteDisplay}
-                    </td>
+                    <td>${pair.meaning || '-'}</td>
                 </tr>
             `;
         }).join('');
@@ -131,11 +102,11 @@ const app = {
             let html = '';
             
             if (results.specialNumbers.zeroCount > 0) {
-                html += `<div class="alert alert-warning"><strong>🔴 Số 0:</strong> ${results.specialNumbers.zeroCount} số - ${ZERO_FIVE_RULES.zero.warnings[0]}</div>`;
+                html += `<div class="alert alert-warning"><strong>🔴 Số 0:</strong> ${results.specialNumbers.zeroCount} số</div>`;
             }
             
             if (results.specialNumbers.fiveCount > 0) {
-                html += `<div class="alert alert-info"><strong>🟡 Số 5:</strong> ${results.specialNumbers.fiveCount} số - ${ZERO_FIVE_RULES.five.effects[0]}</div>`;
+                html += `<div class="alert alert-info"><strong>🟡 Số 5:</strong> ${results.specialNumbers.fiveCount} số</div>`;
             }
 
             if (results.specialNumbers.combinations.length > 0) {
@@ -157,21 +128,14 @@ const app = {
                 </h3>
                 <p><strong>Số lần:</strong> ${star.count} | <strong>Vị trí:</strong> ${star.positions.join(', ')}</p>
                 <p><strong>Ý nghĩa:</strong> ${star.meaning}</p>
-                <div class="star-details">
-                    <p>💰 <strong>Tài:</strong> ${star.wealth}</p>
-                    <p>❤️ <strong>Tình:</strong> ${star.love}</p>
-                    <p>🍎 <strong>Sức khỏe:</strong> ${star.health}</p>
-                </div>
             </div>
         `).join('');
 
-        // Goal analysis - HIỂN THỊ ĐỦ 4 MỤC TIÊU
+        // Goal analysis
         const goals = ['tailoc', 'tinhcam', 'sunghiep', 'suckhoe'];
-        
         goals.forEach(key => {
             const element = document.getElementById(`goal${key.charAt(0).toUpperCase() + key.slice(1)}`);
             const data = results.goalAnalysis[key];
-            
             if (element && data) {
                 element.innerHTML = `<ul>${data.content.map(item => `<li>${item}</li>`).join('')}</ul>`;
             }
@@ -194,7 +158,7 @@ const app = {
     },
 
     saveToHistory() {
-        alert('✅ Đã lưu vào lịch sử phân tích!');
+        alert('✅ Đã lưu vào lịch sử!');
     },
 
     loadHistory() {
@@ -203,15 +167,15 @@ const app = {
         const history = db.analyses.slice(0, 5);
 
         if (history.length === 0) {
-            historyList.innerHTML = '<p class="text-center">Chưa có lịch sử phân tích</p>';
+            historyList.innerHTML = '<p class="text-center">Chưa có lịch sử</p>';
             return;
         }
 
         historyList.innerHTML = history.map(item => `
             <div class="history-item" onclick="app.loadAnalysis('${item.timestamp}')">
-                <div class="history-info">
+                <div>
                     <strong>📱 ${item.phoneNumber}</strong>
-                    <p>${new Date(item.timestamp).toLocaleString('vi-VN')} | ${item.gender === 'nam' ? 'Nam' : 'Nữ'} | ${item.birthYear}</p>
+                    <p>${new Date(item.timestamp).toLocaleString('vi-VN')}</p>
                 </div>
                 <div class="history-score ${item.stats.percentage >= 70 ? 'good' : item.stats.percentage >= 50 ? 'neutral' : 'bad'}">
                     ${item.stats.percentage}%
@@ -232,51 +196,34 @@ const app = {
     },
 
     clearHistory() {
-        if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử phân tích?')) {
+        if (confirm('Xóa lịch sử?')) {
             localStorage.setItem('bat_cuc_db', JSON.stringify({ analyses: [] }));
             this.loadHistory();
-            alert('✅ Đã xóa lịch sử!');
         }
     },
 
     copyResults() {
         if (!this.currentResults) {
-            alert('⚠️ Chưa có kết quả để sao chép!');
+            alert('⚠️ Chưa có kết quả!');
             return;
         }
 
         const r = this.currentResults;
         const text = `
-🔮 Bát Cực Linh Số - Phân Tích Năng Lượng Số
-📱 Số điện thoại: ${r.phoneNumber}
-👤 Giới tính: ${r.gender === 'nam' ? 'Nam' : 'Nữ'}
-🎂 Năm sinh: ${r.birthYear}
-📊 Điểm năng lượng: ${r.stats.percentage}%
-
-📈 Thống kê:
-- Tổng cặp số: ${r.stats.total}
-- Cát tinh: ${r.stats.good}
-- Hung tinh: ${r.stats.bad}
-
-⚠️ Lưu ý đặc biệt:
-- Số 0: ${r.specialNumbers.zeroCount}
-- Số 5: ${r.specialNumbers.fiveCount}
+🔮 Bát Cực Linh Số
+📱 Số: ${r.phoneNumber}
+📊 Điểm: ${r.stats.percentage}%
 
 💡 Khuyến nghị:
 ${r.recommendations.map(rec => `- ${rec.title}: ${rec.content}`).join('\n')}
-
-※ Kết quả mang tính chất tham khảo theo tài liệu Bát Cực Linh Số Kim Tâm Cát
         `.trim();
 
         navigator.clipboard.writeText(text).then(() => {
-            alert('✅ Đã sao chép kết quả vào clipboard!');
-        }).catch(() => {
-            alert('⚠️ Không thể sao chép. Vui lòng sao chép thủ công.');
+            alert('✅ Đã sao chép!');
         });
     }
 };
 
-// Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     app.init();
 });
