@@ -2,6 +2,7 @@ const app = {
     currentResults: null,
 
     init() {
+        document.getElementById('birthYear').max = new Date().getFullYear();
         this.bindEvents();
         this.loadHistory();
     },
@@ -14,48 +15,67 @@ const app = {
     },
 
     async handleSubmit() {
-        const phoneNumber = document.getElementById('phoneNumber').value;
+        const phoneNumber = document.getElementById('phoneNumber').value.replace(/[\s.\-]/g, '');
         const gender = document.getElementById('gender').value;
         const birthYear = document.getElementById('birthYear').value;
 
         if (!/^[0-9]{10,11}$/.test(phoneNumber)) {
-            alert('Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
+            this.toast('⚠️ Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
+            document.getElementById('phoneNumber').focus();
             return;
         }
 
+        const submitButton = document.querySelector('#analysisForm button[type="submit"]');
+        submitButton.disabled = true;
         document.getElementById('loadingSection').classList.remove('hidden');
         document.getElementById('resultsSection').classList.add('hidden');
 
-        await this.animateProgress();
+        try {
+            await this.animateProgress();
 
-        const results = analyzer.analyze(phoneNumber, gender, birthYear);
-        this.currentResults = results;
+            const results = analyzer.analyze(phoneNumber, gender, birthYear);
+            this.currentResults = results;
 
-        this.saveToHistoryInternal(results);
+            this.saveToHistoryInternal(results);
 
-        document.getElementById('loadingSection').classList.add('hidden');
-        document.getElementById('resultsSection').classList.remove('hidden');
-
-        this.renderResults(results);
-        this.loadHistory();
+            document.getElementById('resultsSection').classList.remove('hidden');
+            this.renderResults(results);
+            this.loadHistory();
+        } finally {
+            document.getElementById('loadingSection').classList.add('hidden');
+            submitButton.disabled = false;
+        }
 
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
     },
 
     async animateProgress() {
         const progressFill = document.getElementById('progressFill');
-        for (let i = 0; i <= 100; i += 10) {
+        for (let i = 0; i <= 100; i += 20) {
             progressFill.style.width = i + '%';
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 80));
         }
     },
 
     renderResults(results) {
+        document.getElementById('resultPhone').textContent = results.phoneNumber;
+        document.getElementById('resultGender').textContent = results.gender === 'nam' ? 'Nam' : 'Nữ';
+        document.getElementById('resultBirthYear').textContent = results.birthYear || '-';
         document.getElementById('totalStars').textContent = results.stats.total;
         document.getElementById('goodStarsCount').textContent = results.stats.good;
         document.getElementById('badStarsCount').textContent = results.stats.bad;
-        document.getElementById('goodPercentage').textContent = results.stats.percentage + '%';
-        document.getElementById('scoreBar').style.width = results.stats.percentage + '%';
+        const score = results.stats.percentage;
+        const level = this.scoreLevel(score);
+        document.getElementById('energyScore').textContent = score;
+        const gauge = document.getElementById('scoreGauge');
+        gauge.className = `score-gauge ${level}`;
+        gauge.style.setProperty('--score', score);
+        const verdict = document.getElementById('scoreVerdict');
+        verdict.className = `score-verdict ${level}`;
+        verdict.textContent = level === 'good' ? 'Năng lượng tốt' : level === 'neutral' ? 'Trung bình' : 'Cần cải thiện';
+        document.getElementById('phoneDisplay').innerHTML = results.phoneNumber.split('').map(d =>
+            `<span class="phone-digit ${d === '0' ? 'zero' : d === '5' ? 'five' : ''}">${d}</span>`
+        ).join('');
 
         const pairsBody = document.getElementById('pairsTableBody');
         pairsBody.innerHTML = results.pairs.map((pair) => {
@@ -69,11 +89,11 @@ const app = {
 
             let energyBadge = '';
             if (pair.energyLevel === 'enhanced') {
-                energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡ Tăng cường</span>';
+                energyBadge = '<span class="badge energy-up">⚡ Tăng cường</span>';
             } else if (pair.energyLevel === 'super_enhanced') {
-                energyBadge = '<span class="badge" style="background: #dbeafe; color: #1e40af;">⚡⚡ Siêu tăng</span>';
+                energyBadge = '<span class="badge energy-up">⚡⚡ Siêu tăng</span>';
             } else if (pair.energyLevel === 'reduced') {
-                energyBadge = '<span class="badge" style="background: #fef3c7; color: #92400e;">⚠️ Bị động</span>';
+                energyBadge = '<span class="badge energy-down">⚠️ Bị động</span>';
             }
 
             let noteDisplay = '';
@@ -114,7 +134,7 @@ const app = {
             if (results.specialNumbers.zeroCount > 0) {
                 html += `<div class="alert alert-warning">
                     <strong>🔴 Số 0:</strong> ${results.specialNumbers.zeroCount} số
-                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <ul>
                         ${results.specialNumbers.zeros.map(z => `
                             <li>Vị trí ${z.position}: ${z.context || 'N/A'}</li>
                         `).join('')}
@@ -128,7 +148,7 @@ const app = {
             if (results.specialNumbers.fiveCount > 0) {
                 html += `<div class="alert alert-info">
                     <strong>🟡 Số 5:</strong> ${results.specialNumbers.fiveCount} số
-                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <ul>
                         ${results.specialNumbers.fives.map(f => `
                             <li>Vị trí ${f.position}: ${f.context || 'N/A'}</li>
                         `).join('')}
@@ -142,7 +162,7 @@ const app = {
             if (results.specialNumbers.combinations.length > 0) {
                 html += `<div class="alert alert-danger">
                     <strong>⚠️ Tổ hợp đặc biệt:</strong>
-                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <ul>
                         ${results.specialNumbers.combinations.map(c => `
                             <li><strong>${c.combination}</strong>: ${c.meaning} (vị trí: ${c.positions.join(', ')})</li>
                         `).join('')}
@@ -195,11 +215,12 @@ const app = {
     saveToHistoryInternal(results) {
         const db = JSON.parse(localStorage.getItem('bat_cuc_db') || '{"analyses":[]}');
         db.analyses.unshift(results);
-        localStorage.setItem('bat_cuc_db', JSON.stringify(db));
-    },
-
-    saveToHistory() {
-        alert('✅ Đã lưu vào lịch sử phân tích!');
+        db.analyses = db.analyses.slice(0, 50);
+        try {
+            localStorage.setItem('bat_cuc_db', JSON.stringify(db));
+        } catch (e) {
+            this.toast('⚠️ Không lưu được lịch sử (bộ nhớ trình duyệt đầy hoặc bị chặn)');
+        }
     },
 
     loadHistory() {
@@ -218,8 +239,8 @@ const app = {
                     <strong>📱 ${item.phoneNumber}</strong>
                     <p>${new Date(item.timestamp).toLocaleString('vi-VN')} | ${item.gender === 'nam' ? 'Nam' : 'Nữ'} | ${item.birthYear}</p>
                 </div>
-                <div class="history-score ${item.stats.percentage >= 70 ? 'good' : item.stats.percentage >= 50 ? 'neutral' : 'bad'}">
-                    ${item.stats.percentage}%
+                <div class="history-score ${this.scoreLevel(item.stats.percentage)}">
+                    ${item.stats.percentage}
                 </div>
             </div>
         `).join('');
@@ -240,13 +261,13 @@ const app = {
         if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử phân tích?')) {
             localStorage.setItem('bat_cuc_db', JSON.stringify({ analyses: [] }));
             this.loadHistory();
-            alert('✅ Đã xóa lịch sử!');
+            this.toast('✅ Đã xóa lịch sử!');
         }
     },
 
     copyResults() {
         if (!this.currentResults) {
-            alert('⚠️ Chưa có kết quả để sao chép!');
+            this.toast('⚠️ Chưa có kết quả để sao chép!');
             return;
         }
 
@@ -256,7 +277,7 @@ const app = {
 📱 Số điện thoại: ${r.phoneNumber}
 👤 Giới tính: ${r.gender === 'nam' ? 'Nam' : 'Nữ'}
 🎂 Năm sinh: ${r.birthYear}
-📊 Điểm năng lượng: ${r.stats.percentage}%
+📊 Điểm năng lượng: ${r.stats.percentage}/100
 
 📈 Thống kê:
 - Tổng cặp số: ${r.stats.total}
@@ -274,10 +295,22 @@ ${r.recommendations.map(rec => `- ${rec.title}: ${rec.content}`).join('\n')}
         `.trim();
 
         navigator.clipboard.writeText(text).then(() => {
-            alert('✅ Đã sao chép kết quả vào clipboard!');
+            this.toast('✅ Đã sao chép kết quả vào clipboard!');
         }).catch(() => {
-            alert('⚠️ Không thể sao chép. Vui lòng sao chép thủ công.');
+            this.toast('⚠️ Không thể sao chép. Vui lòng sao chép thủ công.');
         });
+    },
+
+    scoreLevel(score) {
+        return score >= 70 ? 'good' : score >= 50 ? 'neutral' : 'bad';
+    },
+
+    toast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(this.toastTimer);
+        this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
     }
 };
 

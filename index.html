@@ -3,16 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bát Cực Linh Số - Phân Tích Năng Lượng Số</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Bát Cực Linh Số - Phân Tích Năng Lượng Số Điện Thoại</title>
+    <meta name="description" content="Phân tích năng lượng số điện thoại theo Bát Cực Linh Số: 8 sao cát hung, quy tắc số 0 và 5, điểm năng lượng và luận giải Tài Lộc, Tình Cảm, Sự Nghiệp, Sức Khỏe.">
+    <meta name="theme-color" content="#0a0f1f">
+    <meta property="og:title" content="Bát Cực Linh Số - Phân Tích Năng Lượng Số Điện Thoại">
+    <meta property="og:description" content="Xem số điện thoại của bạn có bao nhiêu cát tinh, hung tinh và điểm năng lượng bao nhiêu.">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="css/style.css?v=2">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <h1>🔮 Bát Cực Linh Số</h1>
+            <img src="assets/logo.svg" alt="" class="brand-logo" width="72" height="72">
+            <h1>Bát Cực Linh Số</h1>
             <p>Phân Tích Năng Lượng Số Điện Thoại Theo Dịch Kinh</p>
+            <div class="header-tags">
+                <span>8 Sao Cát · Hung</span>
+                <span>Quy tắc số 0 &amp; 5</span>
+                <span>4 Khía Cạnh Cuộc Sống</span>
+                <span>Lưu lịch sử trên máy</span>
+            </div>
         </div>
     </header>
 
@@ -25,7 +40,8 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="phoneNumber">Số Điện Thoại *</label>
-                        <input type="tel" id="phoneNumber" required placeholder="Nhập số điện thoại" pattern="[0-9]{10,11}">
+                        <input type="tel" id="phoneNumber" required placeholder="VD: 0912 345 678" inputmode="numeric" autocomplete="tel" maxlength="15">
+                        <p class="form-hint">10–11 số, có thể nhập kèm khoảng trắng, dấu chấm hoặc gạch ngang</p>
                     </div>
                     <div class="form-group">
                         <label for="gender">Giới Tính *</label>
@@ -37,7 +53,7 @@
                     </div>
                     <div class="form-group">
                         <label for="birthYear">Năm Sinh *</label>
-                        <input type="number" id="birthYear" required placeholder="Nhập năm sinh" min="1900" max="2024">
+                        <input type="number" id="birthYear" required placeholder="Nhập năm sinh" min="1900" max="2026">
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">🔍 Phân Tích Toàn Diện</button>
@@ -56,26 +72,34 @@
             <!-- Overview -->
             <div class="card">
                 <h2>📊 Tổng Quan Dãy Số</h2>
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalStars">0</div>
-                        <div class="stat-label">Tổng Cặp Số</div>
+                <div class="overview-grid">
+                    <div class="score-section">
+                        <div class="score-gauge" id="scoreGauge">
+                            <div class="score-gauge-inner">
+                                <div class="score-value"><span id="energyScore">0</span><small>/100</small></div>
+                                <div class="score-label">Điểm Năng Lượng</div>
+                            </div>
+                        </div>
+                        <div class="score-verdict" id="scoreVerdict"></div>
                     </div>
-                    <div class="stat-card good">
-                        <div class="stat-value" id="goodStarsCount">0</div>
-                        <div class="stat-label">Cát Tinh</div>
+                    <div>
+                        <div class="phone-display" id="phoneDisplay"></div>
+                        <p class="result-info">📱 <strong id="resultPhone"></strong> | 👤 <span id="resultGender"></span> | 🎂 Năm sinh: <span id="resultBirthYear"></span></p>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="totalStars">0</div>
+                                <div class="stat-label">Tổng Cặp Số</div>
+                            </div>
+                            <div class="stat-card good">
+                                <div class="stat-value" id="goodStarsCount">0</div>
+                                <div class="stat-label">Cát Tinh</div>
+                            </div>
+                            <div class="stat-card bad">
+                                <div class="stat-value" id="badStarsCount">0</div>
+                                <div class="stat-label">Hung Tinh</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="stat-card bad">
-                        <div class="stat-value" id="badStarsCount">0</div>
-                        <div class="stat-label">Hung Tinh</div>
-                    </div>
-                </div>
-                <div class="score-section">
-                    <div class="score-label">
-                        <span>Tỷ Lệ Năng Lượng Tốt</span>
-                        <span id="goodPercentage">0%</span>
-                    </div>
-                    <div class="progress-bar"><div class="progress-fill" id="scoreBar"></div></div>
                 </div>
             </div>
 
@@ -145,10 +169,10 @@
 
             <!-- Actions -->
             <div class="card">
-                <h2>💾 Lưu Trữ & Chia Sẻ</h2>
+                <h2>📤 Chia Sẻ</h2>
+                <p class="result-info">Kết quả đã được tự động lưu vào lịch sử phân tích.</p>
                 <div class="action-buttons">
                     <button onclick="app.copyResults()" class="btn-secondary">📋 Sao Chép</button>
-                    <button onclick="app.saveToHistory()" class="btn-secondary">💾 Lưu Lịch Sử</button>
                 </div>
             </div>
         </section>
@@ -169,9 +193,11 @@
         </div>
     </footer>
 
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
     <!-- Scripts -->
-    <script src="js/config.js"></script>
-    <script src="js/analyzer.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/config.js?v=2"></script>
+    <script src="js/analyzer.js?v=2"></script>
+    <script src="js/app.js?v=3"></script>
 </body>
 </html>
