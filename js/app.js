@@ -2,6 +2,7 @@ const app = {
     currentResults: null,
 
     init() {
+        document.getElementById('birthYear').max = new Date().getFullYear();
         this.bindEvents();
         this.loadHistory();
     },
@@ -51,10 +52,13 @@ const app = {
     },
 
     renderResults(results) {
+        document.getElementById('resultPhone').textContent = results.phoneNumber;
+        document.getElementById('resultGender').textContent = results.gender === 'nam' ? 'Nam' : 'Nữ';
+        document.getElementById('resultBirthYear').textContent = results.birthYear || '-';
         document.getElementById('totalStars').textContent = results.stats.total;
         document.getElementById('goodStarsCount').textContent = results.stats.good;
         document.getElementById('badStarsCount').textContent = results.stats.bad;
-        document.getElementById('goodPercentage').textContent = results.stats.percentage + '%';
+        document.getElementById('energyScore').textContent = results.stats.percentage + '/100';
         document.getElementById('scoreBar').style.width = results.stats.percentage + '%';
 
         const pairsBody = document.getElementById('pairsTableBody');
@@ -195,11 +199,8 @@ const app = {
     saveToHistoryInternal(results) {
         const db = JSON.parse(localStorage.getItem('bat_cuc_db') || '{"analyses":[]}');
         db.analyses.unshift(results);
+        db.analyses = db.analyses.slice(0, 50);
         localStorage.setItem('bat_cuc_db', JSON.stringify(db));
-    },
-
-    saveToHistory() {
-        alert('✅ Đã lưu vào lịch sử phân tích!');
     },
 
     loadHistory() {
@@ -219,7 +220,7 @@ const app = {
                     <p>${new Date(item.timestamp).toLocaleString('vi-VN')} | ${item.gender === 'nam' ? 'Nam' : 'Nữ'} | ${item.birthYear}</p>
                 </div>
                 <div class="history-score ${item.stats.percentage >= 70 ? 'good' : item.stats.percentage >= 50 ? 'neutral' : 'bad'}">
-                    ${item.stats.percentage}%
+                    ${item.stats.percentage}
                 </div>
             </div>
         `).join('');
@@ -256,7 +257,7 @@ const app = {
 📱 Số điện thoại: ${r.phoneNumber}
 👤 Giới tính: ${r.gender === 'nam' ? 'Nam' : 'Nữ'}
 🎂 Năm sinh: ${r.birthYear}
-📊 Điểm năng lượng: ${r.stats.percentage}%
+📊 Điểm năng lượng: ${r.stats.percentage}/100
 
 📈 Thống kê:
 - Tổng cặp số: ${r.stats.total}

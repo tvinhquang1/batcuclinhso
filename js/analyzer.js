@@ -213,7 +213,7 @@ class NumberAnalyzer {
         this.results.specialNumbers.zeros = [];
         this.results.specialNumbers.fives = [];
         
-        if (zeroCount >= 3) {
+        if (zeroCount > CRITICAL_WARNINGS.maxZeros) {
             this.results.criticalWarnings.push({
                 type: 'warning',
                 message: `Quá nhiều số 0 (${zeroCount}): Kiếm tiền rất vất vả, dễ phẫu thuật, hao tiết nguyên khí`,
@@ -234,14 +234,6 @@ class NumberAnalyzer {
                 const start = Math.max(0, i - 2);
                 const end = Math.min(cleanedPhone.length, i + 3);
                 const context = cleanedPhone.substring(start, end);
-                
-                if (i === cleanedPhone.length - 1) {
-                    this.results.criticalWarnings.push({
-                        type: 'critical',
-                        message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
-                        penalty: 50
-                    });
-                }
                 
                 this.results.specialNumbers.zeros.push({
                     position: i + 1,
@@ -282,21 +274,34 @@ class NumberAnalyzer {
                 message: 'Đuôi 05: Tứ đại giai không (tài phú không, sự nghiệp không, tình cảm không, sức khỏe không)',
                 penalty: 100
             });
+        } else if (cleanedPhone.endsWith('0')) {
+            this.results.criticalWarnings.push({
+                type: 'critical',
+                message: 'Số đuôi là 0: Công dã tràng, bận bịu mà không kết quả',
+                penalty: 50
+            });
         }
+    }
+
+    getActiveStarInteractions() {
+        const starKeys = Object.keys(STAR_CONFIG);
+        const interactions = [];
+
+        Object.entries(STAR_INTERACTIONS).forEach(([key, message]) => {
+            const starA = starKeys.find(k => key.startsWith(k + '_') && starKeys.includes(key.slice(k.length + 1)));
+            if (!starA) return;
+            const starB = key.slice(starA.length + 1);
+            if (!this.results.stars[starA] || !this.results.stars[starB]) return;
+
+            const bothBad = STAR_CONFIG[starA].type === 'bad' && STAR_CONFIG[starB].type === 'bad';
+            interactions.push({ key, starA, starB, message, type: bothBad ? 'warning' : 'positive' });
+        });
+
+        return interactions;
     }
 
     checkCriticalWarnings() {
         const phone = this.results.phoneNumber.replace(/\D/g, '');
-        
-        CRITICAL_WARNINGS.endings.forEach(ending => {
-            if (phone.endsWith(ending)) {
-                this.results.criticalWarnings.push({
-                    type: 'critical',
-                    message: `Số đuôi ${ending}: ${ending === '05' ? 'Tứ đại giai không' : 'Công dã tràng'}`,
-                    penalty: 50
-                });
-            }
-        });
 
         CRITICAL_WARNINGS.combinations.forEach(combo => {
             if (phone.includes(combo)) {
@@ -318,6 +323,16 @@ class NumberAnalyzer {
                 });
             }
         });
+
+        this.getActiveStarInteractions()
+            .filter(interaction => interaction.type === 'warning')
+            .forEach(interaction => {
+                this.results.criticalWarnings.push({
+                    type: 'warning',
+                    message: `Tổ hợp hung tinh ${interaction.message}`,
+                    penalty: interaction.key === 'ngu_quy_tuyet_menh' ? 20 : 15
+                });
+            });
     }
 
     calculateScore() {
@@ -410,23 +425,19 @@ class NumberAnalyzer {
             });
         }
 
-        if (this.results.stars['dien_nien'] && this.results.stars['luc_sat']) {
-            recs.push({
-                type: 'positive',
-                title: '✅ Diên Niên chế Lục Sát',
-                content: 'May mắn là bạn có Diên Niên để chế ước Lục Sát, giúp ổn định tình cảm.'
+        this.getActiveStarInteractions()
+            .filter(interaction => interaction.type === 'positive')
+            .forEach(interaction => {
+                const nameA = STAR_CONFIG[interaction.starA].name;
+                const nameB = STAR_CONFIG[interaction.starB].name;
+                recs.push({
+                    type: 'positive',
+                    title: `✅ ${interaction.message}`,
+                    content: `May mắn là bạn có ${nameA} để chế ước ${nameB}, giảm bớt tác động xấu của ${nameB}.`
+                });
             });
-        }
 
-        if (this.results.stars['thien_y'] && this.results.stars['tuyet_menh']) {
-            recs.push({
-                type: 'positive',
-                title: '✅ Thiên Y chế Tuyệt Mệnh',
-                content: 'Thiên Y giúp hóa giải tính cực đoan của Tuyệt Mệnh, giảm nguy cơ phá tài.'
-            });
-        }
-
-        if (this.results.specialNumbers.zeroCount >= 3) {
+        if (this.results.specialNumbers.zeroCount > CRITICAL_WARNINGS.maxZeros) {
             recs.push({
                 type: 'warning',
                 title: '⚠️ Quá nhiều số 0',

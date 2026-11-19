@@ -37,7 +37,7 @@
                     </div>
                     <div class="form-group">
                         <label for="birthYear">Năm Sinh *</label>
-                        <input type="number" id="birthYear" required placeholder="Nhập năm sinh" min="1900" max="2024">
+                        <input type="number" id="birthYear" required placeholder="Nhập năm sinh" min="1900" max="2026">
                     </div>
                 </div>
                 <button type="submit" class="btn-primary">🔍 Phân Tích Toàn Diện</button>
@@ -56,6 +56,7 @@
             <!-- Overview -->
             <div class="card">
                 <h2>📊 Tổng Quan Dãy Số</h2>
+                <p class="result-info">📱 <strong id="resultPhone"></strong> | 👤 <span id="resultGender"></span> | 🎂 Năm sinh: <span id="resultBirthYear"></span></p>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-value" id="totalStars">0</div>
@@ -72,8 +73,8 @@
                 </div>
                 <div class="score-section">
                     <div class="score-label">
-                        <span>Tỷ Lệ Năng Lượng Tốt</span>
-                        <span id="goodPercentage">0%</span>
+                        <span>Điểm Năng Lượng</span>
+                        <span id="energyScore">0/100</span>
                     </div>
                     <div class="progress-bar"><div class="progress-fill" id="scoreBar"></div></div>
                 </div>
@@ -145,10 +146,10 @@
 
             <!-- Actions -->
             <div class="card">
-                <h2>💾 Lưu Trữ & Chia Sẻ</h2>
+                <h2>📤 Chia Sẻ</h2>
+                <p class="result-info">Kết quả đã được tự động lưu vào lịch sử phân tích.</p>
                 <div class="action-buttons">
                     <button onclick="app.copyResults()" class="btn-secondary">📋 Sao Chép</button>
-                    <button onclick="app.saveToHistory()" class="btn-secondary">💾 Lưu Lịch Sử</button>
                 </div>
             </div>
         </section>

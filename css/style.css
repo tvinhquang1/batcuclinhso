@@ -375,3 +375,7 @@ tr:hover {
         grid-template-columns: 1fr;
     }
 }
+.result-info {
+    margin-bottom: 1rem;
+    color: #4b5563;
+}
