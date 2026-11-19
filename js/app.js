@@ -15,7 +15,7 @@ const app = {
     },
 
     async handleSubmit() {
-        const phoneNumber = document.getElementById('phoneNumber').value.replace(/\D/g, '');
+        const phoneNumber = document.getElementById('phoneNumber').value.replace(/[\s.\-]/g, '');
         const gender = document.getElementById('gender').value;
         const birthYear = document.getElementById('birthYear').value;
 
@@ -30,19 +30,21 @@ const app = {
         document.getElementById('loadingSection').classList.remove('hidden');
         document.getElementById('resultsSection').classList.add('hidden');
 
-        await this.animateProgress();
+        try {
+            await this.animateProgress();
 
-        const results = analyzer.analyze(phoneNumber, gender, birthYear);
-        this.currentResults = results;
+            const results = analyzer.analyze(phoneNumber, gender, birthYear);
+            this.currentResults = results;
 
-        this.saveToHistoryInternal(results);
+            this.saveToHistoryInternal(results);
 
-        document.getElementById('loadingSection').classList.add('hidden');
-        document.getElementById('resultsSection').classList.remove('hidden');
-        submitButton.disabled = false;
-
-        this.renderResults(results);
-        this.loadHistory();
+            document.getElementById('resultsSection').classList.remove('hidden');
+            this.renderResults(results);
+            this.loadHistory();
+        } finally {
+            document.getElementById('loadingSection').classList.add('hidden');
+            submitButton.disabled = false;
+        }
 
         document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
     },
@@ -214,7 +216,11 @@ const app = {
         const db = JSON.parse(localStorage.getItem('bat_cuc_db') || '{"analyses":[]}');
         db.analyses.unshift(results);
         db.analyses = db.analyses.slice(0, 50);
-        localStorage.setItem('bat_cuc_db', JSON.stringify(db));
+        try {
+            localStorage.setItem('bat_cuc_db', JSON.stringify(db));
+        } catch (e) {
+            this.toast('⚠️ Không lưu được lịch sử (bộ nhớ trình duyệt đầy hoặc bị chặn)');
+        }
     },
 
     loadHistory() {
