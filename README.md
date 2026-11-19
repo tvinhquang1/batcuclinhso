@@ -2,6 +2,8 @@
 
 Web tĩnh phân tích năng lượng số điện thoại theo phương pháp Bát Cực Linh Số (tài liệu Kim Tâm Cát). Người dùng nhập số điện thoại, giới tính, năm sinh; ứng dụng tách cặp số, phân loại theo 8 sao (Bát Tinh), xét quy tắc số 0/5, cảnh báo tổ hợp cấm kỵ và đưa ra điểm năng lượng cùng phân tích 4 khía cạnh: Tài Lộc, Tình Cảm, Sự Nghiệp, Sức Khỏe.
 
+Bản chạy trực tiếp: https://tvinhquang1.github.io/batcuclinhso/ (GitHub Pages, deploy tự động từ nhánh `master`).
+
 Kết quả mang tính chất tham khảo.
 
 ## Cách chạy
@@ -22,7 +24,8 @@ Lịch sử phân tích lưu trong `localStorage` của trình duyệt (key `bat
 
 ```
 index.html        Giao diện: form nhập, kết quả, lịch sử
-css/style.css     Style
+css/style.css     Giao diện (dark theme, responsive)
+assets/logo.svg   Logo / favicon
 js/config.js      Dữ liệu: STAR_CONFIG (8 sao), ZERO_FIVE_RULES, STAR_INTERACTIONS, CRITICAL_WARNINGS
 js/analyzer.js    NumberAnalyzer: tách cặp số, phân loại sao, số 0/5, cảnh báo, tính điểm, khuyến nghị
 js/app.js         Xử lý form, render kết quả, lưu/xem/xóa lịch sử, sao chép kết quả
